@@ -22,6 +22,7 @@ public class ListaNotasActivity extends AppCompatActivity {
     public static final String CHAVE_NOTA = "nota";
     public static final int CODIGO_REQUISICAO_INSERE_NOTA = 1;
     public static final int CODIGO_RESULTADO_NOTA_CRIADA = 2;
+    public static final int CODIGO_REQUISICAO_ALTERA_NOTA = 2;
     private ListaNotasAdapter adapter;
 
     @Override
@@ -50,8 +51,12 @@ public class ListaNotasActivity extends AppCompatActivity {
     private void configuraAdapter(List<Nota> todasNotas, RecyclerView listaNotas) {
         adapter = new ListaNotasAdapter(this, todasNotas);
         listaNotas.setAdapter(adapter);
-        listaNotas.setOnClickListener(view -> {
-
+        adapter.setOnItemClickListener((Nota nota, int posicao) -> {
+            Intent abreFormularioComNota = new Intent(ListaNotasActivity.this,
+                    FormularioNotaActivity.class);
+            abreFormularioComNota.putExtra(CHAVE_NOTA, nota);
+            abreFormularioComNota.putExtra("posicao", posicao);
+            startActivityForResult(abreFormularioComNota, CODIGO_REQUISICAO_ALTERA_NOTA);
         });
     }
 
@@ -64,7 +69,7 @@ public class ListaNotasActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-
+        super.onActivityResult(requestCode, resultCode, data);
         if (ehResultadoComNota(requestCode, resultCode)) {
             assert data != null;
             if (temNota(data)) {
@@ -73,7 +78,18 @@ public class ListaNotasActivity extends AppCompatActivity {
                 adapter.adiciona(notaRecebida);
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == CODIGO_REQUISICAO_ALTERA_NOTA &&
+                resultCode == CODIGO_RESULTADO_NOTA_CRIADA) {
+            assert data != null;
+            if (temNota(data) && data.hasExtra("posicao")) {
+                Nota notaRecebida = (Nota) data.getSerializableExtra(CHAVE_NOTA);
+                int posicaoRecebida = data.getIntExtra("posicao", -1);
+                new NotaDAO().altera(posicaoRecebida, notaRecebida);
+                adapter.altera(posicaoRecebida, notaRecebida);
+            }
+        }
+
     }
 
     private boolean ehResultadoComNota(int requestCode, int resultCode) {
